@@ -501,3 +501,79 @@ test('resets metrics when tracked element unmounts', async t => {
 
 	t.true(stripAnsi(stdout.get()).includes('Metrics: 0,0,0,0,false'));
 });
+
+test('returns client and scroll size for overflowing content', async t => {
+	const stdout = createStdout(100);
+
+	function Test() {
+		const ref = useRef<DOMElement>(null);
+		const {clientWidth, clientHeight, scrollWidth, scrollHeight} =
+			useBoxMetrics(ref);
+
+		return (
+			<Box flexDirection="column">
+				<Box
+					ref={ref}
+					width={12}
+					height={2}
+					overflow="hidden"
+					flexDirection="column"
+				>
+					<Box width={20} height={5} flexShrink={0} flexGrow={0} />
+				</Box>
+				<Text>
+					client:{clientWidth}x{clientHeight} scroll:{scrollWidth}x
+					{scrollHeight}
+				</Text>
+			</Box>
+		);
+	}
+
+	const {waitUntilRenderFlush} = render(<Test />, {stdout, debug: true});
+	await waitUntilRenderFlush();
+	await delay(50);
+
+	t.true(stripAnsi(stdout.get()).includes('client:12x2 scroll:20x5'));
+});
+
+test('scroll size updates when content grows', async t => {
+	const stdout = createStdout(100);
+	let addItem!: () => void;
+
+	function Test() {
+		const ref = useRef<DOMElement>(null);
+		const [items, setItems] = useState(['a', 'b']);
+		const {scrollHeight} = useBoxMetrics(ref);
+
+		addItem = () => {
+			setItems(previousItems => [
+				...previousItems,
+				`item ${previousItems.length}`,
+			]);
+		};
+
+		return (
+			<Box flexDirection="column">
+				<Box ref={ref} height={2} overflowY="hidden" flexDirection="column">
+					<Box flexDirection="column" flexShrink={0}>
+						{items.map(item => (
+							<Text key={item}>{item}</Text>
+						))}
+					</Box>
+				</Box>
+				<Text>scrollHeight:{scrollHeight}</Text>
+			</Box>
+		);
+	}
+
+	const {waitUntilRenderFlush} = render(<Test />, {stdout, debug: true});
+	await waitUntilRenderFlush();
+	await delay(50);
+
+	t.true(stripAnsi(stdout.get()).includes('scrollHeight:2'));
+
+	addItem();
+	await delay(50);
+
+	t.true(stripAnsi(stdout.get()).includes('scrollHeight:3'));
+});

@@ -1030,6 +1030,56 @@ Default: `visible`
 
 A shortcut for setting `overflowX` and `overflowY` at the same time.
 
+##### contentOffsetX
+
+Type: `number`\
+Default: `0`
+
+Horizontal offset applied to the element's children, in columns. Children are shifted left by this amount. Combine with `overflow="hidden"` to build scrollable views.
+
+##### contentOffsetY
+
+Type: `number`\
+Default: `0`
+
+Vertical offset applied to the element's children, in rows. Children are shifted up by this amount. Combine with `overflow="hidden"` to build scrollable views.
+
+```jsx
+import {useState, useRef} from 'react';
+import {Box, useInput, useBoxMetrics} from 'ink';
+
+const ScrollView = ({height, children}) => {
+	const ref = useRef(null);
+	const {clientHeight, scrollHeight} = useBoxMetrics(ref);
+	const [scrollTop, setScrollTop] = useState(0);
+	const maxScrollTop = Math.max(0, scrollHeight - clientHeight);
+
+	useInput((input, key) => {
+		if (key.upArrow) {
+			setScrollTop(previousScrollTop => Math.max(0, previousScrollTop - 1));
+		}
+
+		if (key.downArrow) {
+			setScrollTop(previousScrollTop =>
+				Math.min(maxScrollTop, previousScrollTop + 1),
+			);
+		}
+	});
+
+	return (
+		<Box
+			ref={ref}
+			height={height}
+			overflow="hidden"
+			contentOffsetY={scrollTop}
+			flexDirection="column"
+		>
+			{children}
+		</Box>
+	);
+};
+```
+
 #### Borders
 
 ##### borderStyle
@@ -2176,6 +2226,30 @@ Type: `number`
 
 Distance from the top edge of the parent.
 
+#### clientWidth
+
+Type: `number`
+
+Element width excluding borders.
+
+#### clientHeight
+
+Type: `number`
+
+Element height excluding borders.
+
+#### scrollWidth
+
+Type: `number`
+
+Total width of the element's content, including content not visible due to overflow. Always at least `clientWidth`.
+
+#### scrollHeight
+
+Type: `number`
+
+Total height of the element's content, including content not visible due to overflow. Always at least `clientHeight`.
+
 #### hasMeasured
 
 Type: `boolean`
@@ -2183,7 +2257,7 @@ Type: `boolean`
 Whether the currently tracked element has been measured.
 
 > [!NOTE]
-> The hook returns `{width: 0, height: 0, left: 0, top: 0}` until the first layout pass completes. It also returns zeros when the tracked ref is detached.
+> The hook returns zeros for all metrics until the first layout pass completes. It also returns zeros when the tracked ref is detached.
 
 ### useStderr()
 
@@ -2925,12 +2999,14 @@ clear();
 #### measureElement(ref)
 
 Measure the layout metrics of a particular `<Box>` element.
-Returns an object with `x`, `y`, `width`, and `height` properties.
+Returns an object with `x`, `y`, `width`, `height`, `clientWidth`, `clientHeight`, `scrollWidth` and `scrollHeight` properties.
 
 `x` and `y` are the element's position within the live layout region, computed by walking up the layout tree. These are layout-tree coordinates, not terminal viewport coordinates. To compare them with mouse events, convert the event coordinates using the live region's viewport position. This is necessary even in alternate-screen mode when output, such as `<Static>` content, appears above the live region.
 
+`clientWidth` and `clientHeight` are the element's dimensions excluding borders. `scrollWidth` and `scrollHeight` are the total dimensions of the element's content, including content not visible due to overflow, and are always at least `clientWidth`/`clientHeight`. These are useful when your component needs to know the amount of available space it has, or how far its content overflows, for example to build scrollable views together with the `contentOffsetX`/`contentOffsetY` props.
+
 > [!NOTE]
-> `measureElement()` returns `{x: 0, y: 0, width: 0, height: 0}` when called during render (before layout is calculated). Call it from post-render code, such as `useEffect`, `useLayoutEffect`, input handlers, or timer callbacks. When content changes, pass the relevant dependency to your effect so it re-measures after each update.
+> `measureElement()` returns zeros for all properties when called during render (before layout is calculated). Call it from post-render code, such as `useEffect`, `useLayoutEffect`, input handlers, or timer callbacks. When content changes, pass the relevant dependency to your effect so it re-measures after each update.
 
 ##### ref
 

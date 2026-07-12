@@ -197,8 +197,8 @@ const renderNodeToOutput = (
 		if (node.nodeName === 'ink-root' || node.nodeName === 'ink-box') {
 			for (const childNode of node.childNodes) {
 				renderNodeToOutput(childNode as DOMElement, output, {
-					offsetX: x,
-					offsetY: y,
+					offsetX: x - (node.style.contentOffsetX ?? 0),
+					offsetY: y - (node.style.contentOffsetY ?? 0),
 					transformers: newTransformers,
 					skipStaticElements,
 				});

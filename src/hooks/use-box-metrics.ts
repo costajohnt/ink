@@ -1,5 +1,6 @@
 import {type RefObject, useState, useEffect, useCallback, useMemo} from 'react';
 import {type DOMElement, addLayoutListener} from '../dom.js';
+import measureElement from '../measure-element.js';
 
 // Yoga's `right`/`bottom` are omitted: always `0` for flow layout and unintuitive for absolute positioning.
 /**
@@ -27,6 +28,26 @@ export type BoxMetrics = {
 	Distance from the top edge of the parent.
 	*/
 	readonly top: number;
+
+	/**
+	Element width excluding borders.
+	*/
+	readonly clientWidth: number;
+
+	/**
+	Element height excluding borders.
+	*/
+	readonly clientHeight: number;
+
+	/**
+	Total width of the element's content, including content not visible due to overflow. Always at least `clientWidth`.
+	*/
+	readonly scrollWidth: number;
+
+	/**
+	Total height of the element's content, including content not visible due to overflow. Always at least `clientHeight`.
+	*/
+	readonly scrollHeight: number;
 };
 
 export type UseBoxMetricsResult = BoxMetrics & {
@@ -41,6 +62,10 @@ const emptyMetrics: BoxMetrics = {
 	height: 0,
 	left: 0,
 	top: 0,
+	clientWidth: 0,
+	clientHeight: 0,
+	scrollWidth: 0,
+	scrollHeight: 0,
 };
 
 // eslint-disable-next-line @typescript-eslint/no-restricted-types
@@ -60,7 +85,7 @@ const findRootNode = (node: DOMElement | null): DOMElement | undefined => {
 A React hook that returns the current layout metrics for a tracked box element.
 It updates when layout changes (for example terminal resize, sibling/content changes, or position changes).
 
-The hook returns `{width: 0, height: 0, left: 0, top: 0}` until the first layout pass completes. It also returns zeros when the tracked ref is detached.
+The hook returns zeros for all metrics until the first layout pass completes. It also returns zeros when the tracked ref is detached.
 
 Use `hasMeasured` to detect when the currently tracked element has been measured.
 
@@ -92,19 +117,27 @@ const useBoxMetrics = (
 	const [hasMeasured, setHasMeasured] = useState(false);
 
 	const updateMetrics = useCallback(() => {
-		const layout = ref.current?.yogaNode?.getComputedLayout() ?? emptyMetrics;
+		const node = ref.current;
+		const layout = node?.yogaNode?.getComputedLayout();
+
+		const nextMetrics: BoxMetrics =
+			node && layout
+				? {
+						left: layout.left,
+						top: layout.top,
+						...measureElement(node),
+					}
+				: emptyMetrics;
 
 		setMetrics(previousMetrics => {
-			const hasChanged =
-				previousMetrics.width !== layout.width ||
-				previousMetrics.height !== layout.height ||
-				previousMetrics.left !== layout.left ||
-				previousMetrics.top !== layout.top;
+			const hasChanged = (
+				Object.keys(nextMetrics) as Array<keyof BoxMetrics>
+			).some(key => previousMetrics[key] !== nextMetrics[key]);
 
-			return hasChanged ? layout : previousMetrics;
+			return hasChanged ? nextMetrics : previousMetrics;
 		});
 
-		setHasMeasured(Boolean(ref.current));
+		setHasMeasured(Boolean(node));
 	}, [ref]);
 
 	// Runs after every render of this component.

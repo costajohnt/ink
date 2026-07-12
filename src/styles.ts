@@ -389,6 +389,20 @@ export type Styles = {
 	readonly overflowY?: 'visible' | 'hidden';
 
 	/**
+	Horizontal offset applied to the element's children, in columns. Children are shifted left by this amount. Combine with `overflow="hidden"` to build scrollable views.
+
+	@default 0
+	*/
+	readonly contentOffsetX?: number;
+
+	/**
+	Vertical offset applied to the element's children, in rows. Children are shifted up by this amount. Combine with `overflow="hidden"` to build scrollable views.
+
+	@default 0
+	*/
+	readonly contentOffsetY?: number;
+
+	/**
 	Background color for the element.
 
 	Accepts the same values as `color` in the `<Text>` component.
