@@ -60,6 +60,24 @@ test('contentOffsetY - offset beyond content renders empty', t => {
 	t.is(output, '\n');
 });
 
+test('contentOffsetY - negative offset shifts content down', t => {
+	const output = renderToString(
+		<Box
+			height={2}
+			overflowY="hidden"
+			contentOffsetY={-1}
+			flexDirection="column"
+		>
+			<Box flexDirection="column" flexShrink={0}>
+				<Text>Line 1</Text>
+				<Text>Line 2</Text>
+			</Box>
+		</Box>,
+	);
+
+	t.is(output, '\nLine 1');
+});
+
 test('contentOffsetX - scrolls content left', t => {
 	const output = renderToString(
 		<Box width={5} overflowX="hidden" contentOffsetX={6}>
