@@ -356,7 +356,16 @@ test('measure element returns zeros for node without yoga', t => {
 	} as unknown as DOMElement;
 
 	const metrics = measureElement(node);
-	t.deepEqual(metrics, {x: 0, y: 0, width: 0, height: 0});
+	t.deepEqual(metrics, {
+		x: 0,
+		y: 0,
+		width: 0,
+		height: 0,
+		clientWidth: 0,
+		clientHeight: 0,
+		scrollWidth: 0,
+		scrollHeight: 0,
+	});
 });
 
 test.serial('calculate layout while rendering is throttled', async t => {
