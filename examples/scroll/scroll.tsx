@@ -42,7 +42,10 @@ function ScrollView({
 				flexDirection="column"
 				borderStyle="round"
 			>
-				{children}
+				{/* flexShrink=0 keeps the content at its natural height, so it can overflow (and scroll) instead of being squeezed into the viewport. */}
+				<Box flexDirection="column" flexShrink={0}>
+					{children}
+				</Box>
 			</Box>
 			<Text dimColor>
 				scrollTop={scrollTop}/{maxScrollTop} client={clientHeight} scroll=

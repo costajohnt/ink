@@ -1074,11 +1074,15 @@ const ScrollView = ({height, children}) => {
 			contentOffsetY={scrollTop}
 			flexDirection="column"
 		>
-			{children}
+			<Box flexDirection="column" flexShrink={0}>
+				{children}
+			</Box>
 		</Box>
 	);
 };
 ```
+
+Note: wrap the content in a `flexShrink={0}` container so it keeps its natural height. Without it, Yoga squeezes the children into the fixed-height viewport and `scrollHeight` never exceeds `clientHeight`, leaving nothing to scroll.
 
 #### Borders
 
