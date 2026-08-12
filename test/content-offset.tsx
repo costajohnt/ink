@@ -362,18 +362,37 @@ test('contentOffsetX - preserves columns when offset splits a wide character', t
 	t.is(render(2), 'A');
 });
 
-test('contentOffsetX - preserves columns when the right edge splits a wide character', t => {
+test('contentOffsetX - preserves columns across a line of wide characters', t => {
+	// `你好AB` occupies columns: 你 (0-1), 好 (2-3), A (4), B (5).
+	const expected = ['你好', ' 好A', '好AB', ' AB', 'AB'];
+
+	for (const [contentOffsetX, want] of expected.entries()) {
+		const output = renderToString(
+			<Box width={4} overflowX="hidden" contentOffsetX={contentOffsetX}>
+				<Box width={6} flexShrink={0}>
+					<Text>你好AB</Text>
+				</Box>
+			</Box>,
+		);
+
+		t.is(output, want, `offset ${contentOffsetX}`);
+	}
+});
+
+test('clipping blanks the cell of a wide character split by the right edge', t => {
 	const output = renderToString(
 		<Box>
-			<Box width={2} overflowX="hidden">
+			<Text>XY</Text>
+			<Box position="absolute" width={2} overflowX="hidden">
 				<Box width={3} flexShrink={0}>
 					<Text>A你</Text>
 				</Box>
 			</Box>
-			<Text>Z</Text>
 		</Box>,
 	);
 
-	// The clipped half of `你` still owns its cell, so `Z` keeps the third column.
-	t.is(output, 'A Z');
+	// The clipped half of `你` owns its cell and blanks the `Y` underneath,
+	// rather than leaving a stale character behind. Trailing blanks are trimmed
+	// from the rendered line, so this reads as 'A'.
+	t.is(output, 'A');
 });
