@@ -166,6 +166,23 @@ export default class Output {
 		});
 	}
 
+	// `sliceAnsi` works in terminal columns, but it drops a wide character (e.g. CJK) outright when the slice edge falls between its two halves. The visible half still owns a cell, so without padding it back the rest of the line shifts by a column and one column of content disappears.
+	sliceLineToColumns(line: string, from: number, to: number): string {
+		const slice = sliceAnsi(line, from, to);
+		const lostLeading =
+			from > 0
+				? from - this.caches.getStringWidth(sliceAnsi(line, 0, from))
+				: 0;
+		const lostTrailing =
+			to - from - this.caches.getStringWidth(slice) - lostLeading;
+
+		return (
+			' '.repeat(Math.max(0, lostLeading)) +
+			slice +
+			' '.repeat(Math.max(0, lostTrailing))
+		);
+	}
+
 	get(): {output: string; height: number} {
 		// Initialize output array with a specific set of rows, so that margin/padding at the bottom is preserved
 		const output: StyledChar[][] = [];
@@ -235,7 +252,7 @@ export default class Output {
 							const width = this.caches.getStringWidth(line);
 							const to = x + width > clip.x2! ? clip.x2! - x : width;
 
-							return sliceAnsi(line, from, to);
+							return this.sliceLineToColumns(line, from, to);
 						});
 
 						if (x < clip.x1!) {

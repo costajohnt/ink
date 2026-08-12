@@ -1057,18 +1057,19 @@ const ScrollView = ({height, children}) => {
 	const contentRef = useRef(null);
 	const {clientHeight} = useBoxMetrics(ref);
 	const content = useBoxMetrics(contentRef);
-	const [scrollTop, setScrollTop] = useState(0);
+	const [requestedScrollTop, setRequestedScrollTop] = useState(0);
 	const maxScrollTop = Math.max(0, content.height - clientHeight);
+	// Clamp on every render, since the maximum shrinks when the content gets
+	// shorter or the terminal gets taller.
+	const scrollTop = Math.min(requestedScrollTop, maxScrollTop);
 
 	useInput((input, key) => {
 		if (key.upArrow) {
-			setScrollTop(previousScrollTop => Math.max(0, previousScrollTop - 1));
+			setRequestedScrollTop(Math.max(0, scrollTop - 1));
 		}
 
 		if (key.downArrow) {
-			setScrollTop(previousScrollTop =>
-				Math.min(maxScrollTop, previousScrollTop + 1),
-			);
+			setRequestedScrollTop(Math.min(maxScrollTop, scrollTop + 1));
 		}
 	});
 
@@ -1087,6 +1088,8 @@ const ScrollView = ({height, children}) => {
 	);
 };
 ```
+
+Note: put any padding on the content wrapper rather than the viewport. `clientHeight` excludes borders but not padding, so a padded viewport reports more room than its content actually gets and `content.height - clientHeight` comes out one row short per padded edge, leaving the last row unreachable.
 
 Note: wrap the content in a `flexShrink={0}` container so it keeps its natural height. Without it, Yoga squeezes the children into the fixed-height viewport and the content is never taller than the viewport, leaving nothing to scroll. Measuring that wrapper with its own `useBoxMetrics` ref is what gives you the scroll bounds, since the viewport only knows its own size.
 
@@ -3001,7 +3004,7 @@ Returns an object with `x`, `y`, `width`, `height`, `clientWidth` and `clientHei
 
 `x` and `y` are the element's position within the live layout region, computed by walking up the layout tree. These are layout-tree coordinates, not terminal viewport coordinates. To compare them with mouse events, convert the event coordinates using the live region's viewport position. This is necessary even in alternate-screen mode when output, such as `<Static>` content, appears above the live region.
 
-`clientWidth` and `clientHeight` are the element's dimensions excluding borders, which is the amount of space its content can occupy. To build a scrollable view, measure the content wrapper separately and clamp the offset with `content.height - viewport.clientHeight`, together with the `contentOffsetX`/`contentOffsetY` props.
+`clientWidth` and `clientHeight` are the element's dimensions excluding borders, which is the amount of space its content can occupy. To build a scrollable view, measure the content wrapper separately and clamp the offset with `content.height - viewport.clientHeight`, together with the `contentOffsetX`/`contentOffsetY` props. That bound assumes an unpadded viewport, since `clientWidth`/`clientHeight` exclude borders but not padding; put padding on the content wrapper instead.
 
 > [!NOTE]
 > `measureElement()` returns zeros for all properties when called during render (before layout is calculated). Call it from post-render code, such as `useEffect`, `useLayoutEffect`, input handlers, or timer callbacks. When content changes, pass the relevant dependency to your effect so it re-measures after each update.

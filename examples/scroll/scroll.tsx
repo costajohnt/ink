@@ -19,30 +19,32 @@ function ScrollView({
 	const contentRef = useRef(null);
 	const {clientWidth, clientHeight} = useBoxMetrics(ref);
 	const content = useBoxMetrics(contentRef);
-	const [scrollTop, setScrollTop] = useState(0);
-	const [scrollLeft, setScrollLeft] = useState(0);
+	const [requestedScrollTop, setRequestedScrollTop] = useState(0);
+	const [requestedScrollLeft, setRequestedScrollLeft] = useState(0);
 	const maxScrollTop = Math.max(0, content.height - clientHeight);
 	const maxScrollLeft = Math.max(0, content.width - clientWidth);
 
+	// Clamp on every render, not just in the key handlers: the maximum shrinks
+	// when the content gets shorter or the terminal gets wider, and an offset
+	// left over from before would scroll the viewport past its content.
+	const scrollTop = Math.min(requestedScrollTop, maxScrollTop);
+	const scrollLeft = Math.min(requestedScrollLeft, maxScrollLeft);
+
 	useInput((_input, key) => {
 		if (key.upArrow) {
-			setScrollTop(previousScrollTop => Math.max(0, previousScrollTop - 1));
+			setRequestedScrollTop(Math.max(0, scrollTop - 1));
 		}
 
 		if (key.downArrow) {
-			setScrollTop(previousScrollTop =>
-				Math.min(maxScrollTop, previousScrollTop + 1),
-			);
+			setRequestedScrollTop(Math.min(maxScrollTop, scrollTop + 1));
 		}
 
 		if (key.leftArrow) {
-			setScrollLeft(previousScrollLeft => Math.max(0, previousScrollLeft - 2));
+			setRequestedScrollLeft(Math.max(0, scrollLeft - 2));
 		}
 
 		if (key.rightArrow) {
-			setScrollLeft(previousScrollLeft =>
-				Math.min(maxScrollLeft, previousScrollLeft + 2),
-			);
+			setRequestedScrollLeft(Math.min(maxScrollLeft, scrollLeft + 2));
 		}
 	});
 

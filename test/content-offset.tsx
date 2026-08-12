@@ -345,3 +345,35 @@ test('contentOffsetX/Y - non-finite offsets fall back to zero', t => {
 		t.is(horizontal, 'ABCDEF');
 	}
 });
+
+test('contentOffsetX - preserves columns when offset splits a wide character', t => {
+	const render = (contentOffsetX: number) =>
+		renderToString(
+			<Box width={2} overflowX="hidden" contentOffsetX={contentOffsetX}>
+				<Box width={3} flexShrink={0}>
+					<Text>你A</Text>
+				</Box>
+			</Box>,
+		);
+
+	// The viewport starts on the second half of `你`, which occupies a cell of
+	// its own, so `A` stays in the second column instead of sliding left.
+	t.is(render(1), ' A');
+	t.is(render(2), 'A');
+});
+
+test('contentOffsetX - preserves columns when the right edge splits a wide character', t => {
+	const output = renderToString(
+		<Box>
+			<Box width={2} overflowX="hidden">
+				<Box width={3} flexShrink={0}>
+					<Text>A你</Text>
+				</Box>
+			</Box>
+			<Text>Z</Text>
+		</Box>,
+	);
+
+	// The clipped half of `你` still owns its cell, so `Z` keeps the third column.
+	t.is(output, 'A Z');
+});
