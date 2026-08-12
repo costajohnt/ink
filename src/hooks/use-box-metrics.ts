@@ -38,16 +38,6 @@ export type BoxMetrics = {
 	Element height excluding borders.
 	*/
 	readonly clientHeight: number;
-
-	/**
-	Total width of the element's content, including content not visible due to overflow. Always at least `clientWidth`.
-	*/
-	readonly scrollWidth: number;
-
-	/**
-	Total height of the element's content, including content not visible due to overflow. Always at least `clientHeight`.
-	*/
-	readonly scrollHeight: number;
 };
 
 export type UseBoxMetricsResult = BoxMetrics & {
@@ -64,8 +54,6 @@ const emptyMetrics: BoxMetrics = {
 	top: 0,
 	clientWidth: 0,
 	clientHeight: 0,
-	scrollWidth: 0,
-	scrollHeight: 0,
 };
 
 // eslint-disable-next-line @typescript-eslint/no-restricted-types
@@ -120,14 +108,21 @@ const useBoxMetrics = (
 		const node = ref.current;
 		const layout = node?.yogaNode?.getComputedLayout();
 
-		const nextMetrics: BoxMetrics =
-			node && layout
-				? {
-						left: layout.left,
-						top: layout.top,
-						...measureElement(node),
-					}
-				: emptyMetrics;
+		// `measureElement()` also returns `x`/`y`, which aren't part of `BoxMetrics` and must not enter the change detection below.
+		let nextMetrics: BoxMetrics = emptyMetrics;
+
+		if (node && layout) {
+			const {width, height, clientWidth, clientHeight} = measureElement(node);
+
+			nextMetrics = {
+				width,
+				height,
+				left: layout.left,
+				top: layout.top,
+				clientWidth,
+				clientHeight,
+			};
+		}
 
 		setMetrics(previousMetrics => {
 			const hasChanged = (

@@ -29,6 +29,10 @@ const applyPaddingToText = (node: DOMElement, text: string): string => {
 
 export type OutputTransformer = (s: string, index: number) => string;
 
+// Content offsets end up as terminal cell coordinates, so they have to be whole numbers. Fractions would drop or duplicate cells and non-finite values would erase content entirely.
+const normalizeContentOffset = (value: number | undefined): number =>
+	typeof value === 'number' && Number.isFinite(value) ? Math.trunc(value) : 0;
+
 export const renderNodeToScreenReaderOutput = (
 	node: DOMElement,
 	options: {
@@ -197,8 +201,8 @@ const renderNodeToOutput = (
 		if (node.nodeName === 'ink-root' || node.nodeName === 'ink-box') {
 			for (const childNode of node.childNodes) {
 				renderNodeToOutput(childNode as DOMElement, output, {
-					offsetX: x - (node.style.contentOffsetX ?? 0),
-					offsetY: y - (node.style.contentOffsetY ?? 0),
+					offsetX: x - normalizeContentOffset(node.style.contentOffsetX),
+					offsetY: y - normalizeContentOffset(node.style.contentOffsetY),
 					transformers: newTransformers,
 					skipStaticElements,
 				});

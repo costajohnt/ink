@@ -160,3 +160,188 @@ test('contentOffsetY - nested offset containers compose', t => {
 	// Inner box scrolls to lines 2-4; outer box shows rows 2-3 of that: lines 3-4.
 	t.is(output, 'Line 3\nLine 4');
 });
+
+test('nested clipped content stays inside the outer clip', t => {
+	const output = renderToString(
+		<Box flexDirection="column">
+			<Text>ABOVE</Text>
+			<Box height={2} overflowY="hidden" flexDirection="column">
+				<Box
+					height={4}
+					marginTop={-2}
+					overflowY="hidden"
+					flexDirection="column"
+					flexShrink={0}
+				>
+					<Text>Line 1</Text>
+					<Text>Line 2</Text>
+					<Text>Line 3</Text>
+					<Text>Line 4</Text>
+				</Box>
+			</Box>
+		</Box>,
+	);
+
+	// The inner box starts above the outer viewport, so its own clip alone would let lines 1-2 paint over "ABOVE". Only the intersection of both clips keeps them out. No content offset involved, this is the underlying renderer bug.
+	t.is(output, 'ABOVE\nLine 3\nLine 4');
+});
+
+test('nested clips on different axes both apply', t => {
+	const output = renderToString(
+		<Box flexDirection="column">
+			<Text>HEADER</Text>
+			<Box height={2} overflowY="hidden" flexDirection="column">
+				<Box
+					width={3}
+					overflowX="hidden"
+					marginTop={-1}
+					flexDirection="column"
+					flexShrink={0}
+				>
+					<Text>AAAAAA</Text>
+					<Text>BBBBBB</Text>
+					<Text>CCCCCC</Text>
+				</Box>
+			</Box>
+		</Box>,
+	);
+
+	// The inner box clips only horizontally and the outer only vertically, so the merged clip has to carry both bounds. "AAA" sits a row above the viewport and must not reach "HEADER".
+	t.is(output, 'HEADER\nAAA\nBBB');
+});
+
+test('disjoint nested clips render nothing', t => {
+	const output = renderToString(
+		<Box flexDirection="column">
+			<Text>HEADER</Text>
+			<Box width={5} overflowX="hidden">
+				<Box marginLeft={10} width={10} overflowX="hidden" flexShrink={0}>
+					<Text>XXXXXXXXXX</Text>
+				</Box>
+			</Box>
+		</Box>,
+	);
+
+	// The two clips do not overlap, so the intersection is empty and nothing may be drawn.
+	t.is(output, 'HEADER\n');
+});
+
+test('contentOffsetY - nested clipped content does not escape the outer viewport', t => {
+	const output = renderToString(
+		<Box flexDirection="column">
+			<Text>ABOVE</Text>
+			<Box
+				height={2}
+				overflowY="hidden"
+				contentOffsetY={1}
+				flexDirection="column"
+			>
+				<Box
+					height={4}
+					overflowY="hidden"
+					flexDirection="column"
+					flexShrink={0}
+				>
+					<Text>Line 1</Text>
+					<Text>Line 2</Text>
+					<Text>Line 3</Text>
+					<Text>Line 4</Text>
+				</Box>
+			</Box>
+		</Box>,
+	);
+
+	// Offsetting the outer box must not let the inner box paint over "ABOVE" above it.
+	t.is(output, 'ABOVE\nLine 2\nLine 3');
+});
+
+test('contentOffsetX/Y - fractional offsets are truncated to whole cells', t => {
+	const vertical = renderToString(
+		<Box
+			height={2}
+			overflowY="hidden"
+			contentOffsetY={1.5}
+			flexDirection="column"
+		>
+			<Box flexDirection="column" flexShrink={0}>
+				<Text>Line 1</Text>
+				<Text>Line 2</Text>
+				<Text>Line 3</Text>
+			</Box>
+		</Box>,
+	);
+
+	t.is(vertical, 'Line 2\nLine 3');
+
+	const horizontal = renderToString(
+		<Box width={6} overflowX="hidden" contentOffsetX={1.5}>
+			<Box flexShrink={0}>
+				<Text>ABCDEF</Text>
+			</Box>
+		</Box>,
+	);
+
+	t.is(horizontal, 'BCDEF');
+});
+
+test('contentOffsetX/Y - negative fractional offsets are truncated to whole cells', t => {
+	const vertical = renderToString(
+		<Box
+			height={2}
+			overflowY="hidden"
+			contentOffsetY={-0.5}
+			flexDirection="column"
+		>
+			<Box flexDirection="column" flexShrink={0}>
+				<Text>Line 1</Text>
+				<Text>Line 2</Text>
+			</Box>
+		</Box>,
+	);
+
+	t.is(vertical, 'Line 1\nLine 2');
+
+	const horizontal = renderToString(
+		<Box width={6} overflowX="hidden" contentOffsetX={-0.5}>
+			<Box flexShrink={0}>
+				<Text>ABCDEF</Text>
+			</Box>
+		</Box>,
+	);
+
+	t.is(horizontal, 'ABCDEF');
+});
+
+test('contentOffsetX/Y - non-finite offsets fall back to zero', t => {
+	for (const offset of [
+		Number.NaN,
+		Number.POSITIVE_INFINITY,
+		Number.NEGATIVE_INFINITY,
+	]) {
+		const vertical = renderToString(
+			<Box
+				height={2}
+				overflowY="hidden"
+				contentOffsetY={offset}
+				flexDirection="column"
+			>
+				<Box flexDirection="column" flexShrink={0}>
+					<Text>Line 1</Text>
+					<Text>Line 2</Text>
+				</Box>
+			</Box>,
+		);
+
+		t.is(vertical, 'Line 1\nLine 2');
+
+		const horizontal = renderToString(
+			<Box width={6} overflowX="hidden" contentOffsetX={offset}>
+				<Box flexShrink={0}>
+					<Text>ABCDEF</Text>
+				</Box>
+			</Box>,
+		);
+
+		t.is(horizontal, 'ABCDEF');
+	}
+});

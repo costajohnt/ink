@@ -363,8 +363,6 @@ test('measure element returns zeros for node without yoga', t => {
 		height: 0,
 		clientWidth: 0,
 		clientHeight: 0,
-		scrollWidth: 0,
-		scrollHeight: 0,
 	});
 });
 
@@ -407,7 +405,7 @@ test.serial('calculate layout while rendering is throttled', async t => {
 	t.is(stripAnsi(lastContentWrite).trim(), 'Width: 100');
 });
 
-test('measure element client and scroll size with overflowing content', async t => {
+test('measure element client size with overflowing content', async t => {
 	const stdout = createStdout();
 
 	function Test() {
@@ -419,12 +417,9 @@ test('measure element client and scroll size with overflowing content', async t 
 				return;
 			}
 
-			const {clientWidth, clientHeight, scrollWidth, scrollHeight} =
-				measureElement(ref.current);
+			const {clientWidth, clientHeight} = measureElement(ref.current);
 
-			setMetrics(
-				`client:${clientWidth}x${clientHeight} scroll:${scrollWidth}x${scrollHeight}`,
-			);
+			setMetrics(`client:${clientWidth}x${clientHeight}`);
 		}, []);
 
 		return (
@@ -448,7 +443,7 @@ test('measure element client and scroll size with overflowing content', async t 
 
 	t.true(
 		stripAnsi((stdout.write as any).lastCall.firstArg as string).includes(
-			'client:12x2 scroll:20x5',
+			'client:12x2',
 		),
 	);
 });
@@ -486,46 +481,6 @@ test('measure element client size excludes borders', async t => {
 	t.true(
 		stripAnsi((stdout.write as any).lastCall.firstArg as string).includes(
 			'12x4 client:10x2',
-		),
-	);
-});
-
-test('measure element scroll size is at least client size', async t => {
-	const stdout = createStdout();
-
-	function Test() {
-		const [metrics, setMetrics] = useState('');
-		const ref = useRef<DOMElement>(null);
-
-		useEffect(() => {
-			if (!ref.current) {
-				return;
-			}
-
-			const {clientWidth, clientHeight, scrollWidth, scrollHeight} =
-				measureElement(ref.current);
-
-			setMetrics(
-				`client:${clientWidth}x${clientHeight} scroll:${scrollWidth}x${scrollHeight}`,
-			);
-		}, []);
-
-		return (
-			<Box flexDirection="column">
-				<Box ref={ref} width={12} height={4} flexDirection="column">
-					<Text>hi</Text>
-				</Box>
-				<Text>{metrics}</Text>
-			</Box>
-		);
-	}
-
-	render(<Test />, {stdout, debug: true});
-	await delay(100);
-
-	t.true(
-		stripAnsi((stdout.write as any).lastCall.firstArg as string).includes(
-			'client:12x4 scroll:12x4',
 		),
 	);
 });

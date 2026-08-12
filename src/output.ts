@@ -47,6 +47,36 @@ type UnclipOperation = {
 	type: 'unclip';
 };
 
+// An undefined bound means "unbounded on this edge", so intersecting keeps whichever bound is defined and takes the tighter one when both are.
+const intersectBound = (
+	a: number | undefined,
+	b: number | undefined,
+	tighter: (a: number, b: number) => number,
+): number | undefined => {
+	if (a === undefined) {
+		return b;
+	}
+
+	if (b === undefined) {
+		return a;
+	}
+
+	return tighter(a, b);
+};
+
+const intersectClips = (outer: Clip | undefined, inner: Clip): Clip => {
+	if (!outer) {
+		return inner;
+	}
+
+	return {
+		x1: intersectBound(outer.x1, inner.x1, Math.max),
+		x2: intersectBound(outer.x2, inner.x2, Math.min),
+		y1: intersectBound(outer.y1, inner.y1, Math.max),
+		y2: intersectBound(outer.y2, inner.y2, Math.min),
+	};
+};
+
 class OutputCaches {
 	widths = new Map<string, number>();
 	blockWidths = new Map<string, number>();
@@ -159,7 +189,8 @@ export default class Output {
 
 		for (const operation of this.operations) {
 			if (operation.type === 'clip') {
-				clips.push(operation.clip);
+				// Nested clips must intersect, not replace, otherwise an inner `overflow="hidden"` box lets content escape the outer clip and overwrite surrounding UI.
+				clips.push(intersectClips(clips.at(-1), operation.clip));
 			}
 
 			if (operation.type === 'unclip') {

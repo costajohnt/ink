@@ -1037,6 +1037,8 @@ Default: `0`
 
 Horizontal offset applied to the element's children, in columns. Children are shifted left by this amount. Combine with `overflow="hidden"` to build scrollable views.
 
+Offsets are terminal cell coordinates, so fractional values are truncated toward zero and non-finite values are treated as `0`.
+
 ##### contentOffsetY
 
 Type: `number`\
@@ -1044,15 +1046,19 @@ Default: `0`
 
 Vertical offset applied to the element's children, in rows. Children are shifted up by this amount. Combine with `overflow="hidden"` to build scrollable views.
 
+Offsets are terminal cell coordinates, so fractional values are truncated toward zero and non-finite values are treated as `0`.
+
 ```jsx
 import {useState, useRef} from 'react';
 import {Box, useInput, useBoxMetrics} from 'ink';
 
 const ScrollView = ({height, children}) => {
 	const ref = useRef(null);
-	const {clientHeight, scrollHeight} = useBoxMetrics(ref);
+	const contentRef = useRef(null);
+	const {clientHeight} = useBoxMetrics(ref);
+	const content = useBoxMetrics(contentRef);
 	const [scrollTop, setScrollTop] = useState(0);
-	const maxScrollTop = Math.max(0, scrollHeight - clientHeight);
+	const maxScrollTop = Math.max(0, content.height - clientHeight);
 
 	useInput((input, key) => {
 		if (key.upArrow) {
@@ -1074,7 +1080,7 @@ const ScrollView = ({height, children}) => {
 			contentOffsetY={scrollTop}
 			flexDirection="column"
 		>
-			<Box flexDirection="column" flexShrink={0}>
+			<Box ref={contentRef} flexDirection="column" flexShrink={0}>
 				{children}
 			</Box>
 		</Box>
@@ -1082,7 +1088,7 @@ const ScrollView = ({height, children}) => {
 };
 ```
 
-Note: wrap the content in a `flexShrink={0}` container so it keeps its natural height. Without it, Yoga squeezes the children into the fixed-height viewport and `scrollHeight` never exceeds `clientHeight`, leaving nothing to scroll.
+Note: wrap the content in a `flexShrink={0}` container so it keeps its natural height. Without it, Yoga squeezes the children into the fixed-height viewport and the content is never taller than the viewport, leaving nothing to scroll. Measuring that wrapper with its own `useBoxMetrics` ref is what gives you the scroll bounds, since the viewport only knows its own size.
 
 #### Borders
 
@@ -2242,18 +2248,6 @@ Type: `number`
 
 Element height excluding borders.
 
-#### scrollWidth
-
-Type: `number`
-
-Total width of the element's content, including content not visible due to overflow. Always at least `clientWidth`.
-
-#### scrollHeight
-
-Type: `number`
-
-Total height of the element's content, including content not visible due to overflow. Always at least `clientHeight`.
-
 #### hasMeasured
 
 Type: `boolean`
@@ -3003,11 +2997,11 @@ clear();
 #### measureElement(ref)
 
 Measure the layout metrics of a particular `<Box>` element.
-Returns an object with `x`, `y`, `width`, `height`, `clientWidth`, `clientHeight`, `scrollWidth` and `scrollHeight` properties.
+Returns an object with `x`, `y`, `width`, `height`, `clientWidth` and `clientHeight` properties.
 
 `x` and `y` are the element's position within the live layout region, computed by walking up the layout tree. These are layout-tree coordinates, not terminal viewport coordinates. To compare them with mouse events, convert the event coordinates using the live region's viewport position. This is necessary even in alternate-screen mode when output, such as `<Static>` content, appears above the live region.
 
-`clientWidth` and `clientHeight` are the element's dimensions excluding borders. `scrollWidth` and `scrollHeight` are the total dimensions of the element's content, including content not visible due to overflow, and are always at least `clientWidth`/`clientHeight`. These are useful when your component needs to know the amount of available space it has, or how far its content overflows, for example to build scrollable views together with the `contentOffsetX`/`contentOffsetY` props.
+`clientWidth` and `clientHeight` are the element's dimensions excluding borders, which is the amount of space its content can occupy. To build a scrollable view, measure the content wrapper separately and clamp the offset with `content.height - viewport.clientHeight`, together with the `contentOffsetX`/`contentOffsetY` props.
 
 > [!NOTE]
 > `measureElement()` returns zeros for all properties when called during render (before layout is calculated). Call it from post-render code, such as `useEffect`, `useLayoutEffect`, input handlers, or timer callbacks. When content changes, pass the relevant dependency to your effect so it re-measures after each update.

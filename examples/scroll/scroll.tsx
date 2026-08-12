@@ -16,12 +16,13 @@ function ScrollView({
 	readonly children: React.ReactNode;
 }) {
 	const ref = useRef(null);
-	const {clientWidth, clientHeight, scrollWidth, scrollHeight} =
-		useBoxMetrics(ref);
+	const contentRef = useRef(null);
+	const {clientWidth, clientHeight} = useBoxMetrics(ref);
+	const content = useBoxMetrics(contentRef);
 	const [scrollTop, setScrollTop] = useState(0);
 	const [scrollLeft, setScrollLeft] = useState(0);
-	const maxScrollTop = Math.max(0, scrollHeight - clientHeight);
-	const maxScrollLeft = Math.max(0, scrollWidth - clientWidth);
+	const maxScrollTop = Math.max(0, content.height - clientHeight);
+	const maxScrollLeft = Math.max(0, content.width - clientWidth);
 
 	useInput((_input, key) => {
 		if (key.upArrow) {
@@ -57,14 +58,14 @@ function ScrollView({
 				borderStyle="round"
 			>
 				{/* flexShrink=0 keeps the content at its natural height, so it can overflow (and scroll) instead of being squeezed into the viewport. The explicit width gives the content a horizontal extent wider than the viewport; without it, text wraps or truncates at the viewport edge and there is nothing to scroll horizontally. */}
-				<Box flexDirection="column" flexShrink={0} width={140}>
+				<Box ref={contentRef} flexDirection="column" flexShrink={0} width={140}>
 					{children}
 				</Box>
 			</Box>
 			<Text dimColor>
 				scrollTop={scrollTop}/{maxScrollTop} scrollLeft={scrollLeft}/
-				{maxScrollLeft} client={clientWidth}x{clientHeight} scroll=
-				{scrollWidth}x{scrollHeight} (arrows to scroll, q to quit)
+				{maxScrollLeft} client={clientWidth}x{clientHeight} content=
+				{content.width}x{content.height} (arrows to scroll, q to quit)
 			</Text>
 		</Box>
 	);

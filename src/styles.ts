@@ -391,12 +391,16 @@ export type Styles = {
 	/**
 	Horizontal offset applied to the element's children, in columns. Children are shifted left by this amount. Combine with `overflow="hidden"` to build scrollable views.
 
+	Offsets are terminal cell coordinates, so fractional values are truncated toward zero and non-finite values are treated as `0`.
+
 	@default 0
 	*/
 	readonly contentOffsetX?: number;
 
 	/**
 	Vertical offset applied to the element's children, in rows. Children are shifted up by this amount. Combine with `overflow="hidden"` to build scrollable views.
+
+	Offsets are terminal cell coordinates, so fractional values are truncated toward zero and non-finite values are treated as `0`.
 
 	@default 0
 	*/
