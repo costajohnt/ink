@@ -685,7 +685,7 @@ test.serial(
 		assertIssue450DynamicFrameOutput(t, output);
 		t.true(
 			fullClearCount <= 1,
-			`Expected at most one clearTerminal sequence, received ${fullClearCount}`,
+			`Expected at most one full-clear sequence, received ${fullClearCount}`,
 		);
 		t.true(
 			eraseLineCount > 0,
@@ -750,7 +750,7 @@ test.serial(
 );
 
 test.serial(
-	'#450 control: rows - 1 rerenders should avoid clearTerminal',
+	'#450 control: rows - 1 rerenders should avoid a full clear',
 	async t => {
 		const {output, fullClearCount, eraseLineCount} =
 			await runIssue450FixtureWithCounts('issue-450-height-minus-one-rerender');
@@ -795,10 +795,11 @@ test.serial(
 			);
 		}
 
-		// The final viewport shows the last frame only, without stale rows.
+		// The final viewport shows the last frame only. Frame 7's label is longer
+		// than frame 8's, so a missing or partial clear leaves `STALE-ROW` behind.
 		const viewport = visibleLines.slice(-rows);
 		t.true(viewport.some(line => line.includes('frame 8')));
-		t.false(viewport.some(line => line.includes('frame 7')));
+		t.false(viewport.some(line => line.includes('STALE-ROW')));
 	},
 );
 
@@ -1032,7 +1033,7 @@ test.serial(
 		assertIssue450DynamicFrameOutput(t, output);
 		t.true(
 			fullClearCount <= 1,
-			`Expected at most one clearTerminal sequence, received ${fullClearCount}`,
+			`Expected at most one full-clear sequence, received ${fullClearCount}`,
 		);
 		t.true(
 			eraseLineCount > 0,

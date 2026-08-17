@@ -439,7 +439,7 @@ for (const {name, incremental} of renderingModes) {
 		render.setCursorPosition({x: 5, y: 0});
 		render('Line 1\nLine 2\nLine 3\n');
 
-		// Sync() simulates clearTerminal path: screen is fully reset
+		// Sync() simulates Ink's full-clear (home + erase-down) path: screen is fully reset
 		render.sync('Fresh output\n');
 
 		// Next render should NOT include hideCursor + cursorDown (return-to-bottom prefix)
