@@ -123,7 +123,7 @@ const stripKittyQueryResponsesAndTrailingPartial = (
 // pre-7.0 behavior of fully clearing between fullscreen frames there.
 const isWindowsConsole = process.platform === 'win32';
 
-// Full-clear fallback for frames taller than the viewport. It must clear only
+// Full-clear path (see `shouldClearTerminalForFrame`). It must clear only
 // what is visible: `ansiEscapes.clearTerminal` emits CSI 3J, which erases the
 // terminal's scrollback, and both it and `ansiEscapes.clearViewport` emit
 // CSI 2J, which VS Code and Windows Terminal handle by pushing the viewport

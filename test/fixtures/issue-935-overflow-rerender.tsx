@@ -8,6 +8,9 @@ for (let index = 0; index < rows; index++) {
 }
 
 runIssue450RerenderFixture({
+	// Overflow by exactly one row: only the top row scrolls into scrollback per
+	// frame, so the label row below it stays in the viewport, where a full clear
+	// erases it before the next frame is written.
 	heightForFrame: rows => rows + 1,
 	// One frame's label is longer than the others, so an incomplete clear leaves
 	// its tail behind (`#450 topSTALE-ROW`) instead of being overwritten.
