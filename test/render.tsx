@@ -29,7 +29,7 @@ import {
 	useInput,
 	useStdin,
 } from '../src/index.js';
-import {type RenderMetrics} from '../src/ink.js';
+import {type RenderMetrics, homeAndEraseDown} from '../src/ink.js';
 import {bsu, esu} from '../src/write-synchronized.js';
 import {createStdin, emitReadable} from './helpers/create-stdin.js';
 import createStdout from './helpers/create-stdout.js';
@@ -240,10 +240,6 @@ const countOccurrences = (text: string, searchValue: string): number => {
 	return text.split(searchValue).length - 1;
 };
 
-// Ink's full-clear fallback for oversized frames: home + erase-down. It must
-// never be `clearTerminal`, whose CSI 3J wipes the terminal scrollback (#935).
-const clearViewport = ansiEscapes.cursorTo(0, 0) + ansiEscapes.eraseDown;
-
 const isWriteBarrierChunk = (chunk: string | Uint8Array): boolean =>
 	(typeof chunk === 'string' && chunk === '') ||
 	(chunk instanceof Uint8Array && chunk.length === 0);
@@ -383,7 +379,7 @@ type Issue450FixtureResult = {
 };
 
 const getIssue450ControlSequenceCounts = (output: string) => ({
-	fullClearCount: countOccurrences(output, clearViewport),
+	fullClearCount: countOccurrences(output, homeAndEraseDown),
 	eraseLineCount: countOccurrences(output, ansiEscapes.eraseLines(1)),
 });
 
@@ -479,7 +475,7 @@ function ThrowingComponentWithBoundary() {
 test.serial('do not erase screen', async t => {
 	const ps = term('erase', ['4']);
 	await ps.waitForExit();
-	t.false(ps.output.includes(clearViewport));
+	t.false(ps.output.includes(homeAndEraseDown));
 
 	for (const letter of ['A', 'B', 'C']) {
 		t.true(ps.output.includes(letter));
@@ -492,7 +488,7 @@ test.serial(
 		const ps = term('erase-with-static', ['4']);
 
 		await ps.waitForExit();
-		t.false(ps.output.includes(clearViewport));
+		t.false(ps.output.includes(homeAndEraseDown));
 
 		for (const letter of ['A', 'B', 'C', 'D', 'E', 'F']) {
 			t.true(ps.output.includes(letter));
@@ -536,13 +532,13 @@ test.serial(
 			'Expected the inflate phase to have rendered as its own frame',
 		);
 		t.true(
-			ps.output.includes(clearViewport),
+			ps.output.includes(homeAndEraseDown),
 			'Expected the overflow to have routed a frame through the full-clear path',
 		);
 
 		// The shrink frame's full clear is the last one; the lowercase "live-0"
 		// after it proves shrink and nudge rendered as separate frames.
-		const lastClearIndex = ps.output.lastIndexOf(clearViewport);
+		const lastClearIndex = ps.output.lastIndexOf(homeAndEraseDown);
 		t.false(
 			ps.output.includes('live-4', lastClearIndex),
 			'Expected the last full clear to be the shrink frame, not the inflate frame',
@@ -565,7 +561,7 @@ test.serial(
 test.serial('erase screen', async t => {
 	const ps = term('erase', ['3']);
 	await ps.waitForExit();
-	t.true(ps.output.includes(clearViewport));
+	t.true(ps.output.includes(homeAndEraseDown));
 
 	for (const letter of ['A', 'B', 'C']) {
 		t.true(ps.output.includes(letter));
@@ -577,7 +573,7 @@ test.serial(
 	async t => {
 		const ps = term('erase', ['3']);
 		await ps.waitForExit();
-		t.true(ps.output.includes(clearViewport));
+		t.true(ps.output.includes(homeAndEraseDown));
 
 		for (const letter of ['A', 'B', 'C']) {
 			t.true(ps.output.includes(letter));
@@ -618,7 +614,7 @@ test.serial('erase screen where state changes in small viewport', async t => {
 	const ps = term('erase-with-state-change', ['3']);
 	await ps.waitForExit();
 
-	const frames = ps.output.split(clearViewport);
+	const frames = ps.output.split(homeAndEraseDown);
 	const lastFrame = frames.at(-1);
 
 	for (const letter of ['A', 'B', 'C']) {
@@ -634,7 +630,7 @@ test.serial(
 
 		t.true(ps.output.includes('Bottom line'));
 
-		const lastFrame = ps.output.split(clearViewport).at(-1) ?? '';
+		const lastFrame = ps.output.split(homeAndEraseDown).at(-1) ?? '';
 
 		// Check that the bottom line is at the end without extra newlines
 		// In a 5-line terminal:
@@ -659,7 +655,7 @@ test.serial(
 		const ps = term('issue-442-full-height', [String(rows)]);
 		await ps.waitForExit();
 
-		const lastFrame = ps.output.split(clearViewport).at(-1) ?? '';
+		const lastFrame = ps.output.split(homeAndEraseDown).at(-1) ?? '';
 		const lastFrameContent = stripAnsi(lastFrame);
 		const lines = lastFrameContent.split('\n');
 
@@ -705,7 +701,7 @@ test.serial(
 		// Windows consoles scroll when the bottom-right cell is written, which
 		// breaks incremental erase for fullscreen frames. Each rerender must fall
 		// back to a full clear there.
-		const fullClearCount = countOccurrences(output, clearViewport);
+		const fullClearCount = countOccurrences(output, homeAndEraseDown);
 		t.true(
 			fullClearCount >= 2,
 			`Expected a full clear per fullscreen rerender, received ${fullClearCount}`,
@@ -725,7 +721,7 @@ test.serial(
 		);
 
 		t.false(
-			outputBeforeMarker.includes(clearViewport),
+			outputBeforeMarker.includes(homeAndEraseDown),
 			'Initial overflowing render should not clear terminal',
 		);
 	},
@@ -743,7 +739,7 @@ test.serial(
 		);
 
 		t.false(
-			outputBeforeMarker.includes(clearViewport),
+			outputBeforeMarker.includes(homeAndEraseDown),
 			'Initial full-height render should not clear terminal',
 		);
 	},
@@ -990,7 +986,7 @@ test.serial(
 			'issue-450-grow-to-overflow-rerender',
 			['3'],
 		);
-		t.false(output.includes(clearViewport));
+		t.false(output.includes(homeAndEraseDown));
 	},
 );
 
