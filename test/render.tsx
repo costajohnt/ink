@@ -795,11 +795,12 @@ test.serial(
 			);
 		}
 
-		// The final viewport shows the last frame only. Frame 7's label is longer
-		// than frame 8's, so a missing or partial clear leaves `STALE-ROW` behind.
+		// The final viewport shows the last frame, and no stale row survives
+		// anywhere the user can see: frame 7's label is longer than every other
+		// frame's, so a missing or partial clear leaves `STALE-ROW` behind.
 		const viewport = visibleLines.slice(-rows);
 		t.true(viewport.some(line => line.includes('frame 8')));
-		t.false(viewport.some(line => line.includes('STALE-ROW')));
+		t.false(visibleLines.some(line => line.includes('STALE-ROW')));
 	},
 );
 

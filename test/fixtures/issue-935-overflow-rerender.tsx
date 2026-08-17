@@ -9,8 +9,8 @@ for (let index = 0; index < rows; index++) {
 
 runIssue450RerenderFixture({
 	heightForFrame: rows => rows + 1,
-	// The last frame is shorter than the one before it, so an incomplete clear
-	// leaves the tail of the previous frame's row behind (`frame 8 STALE-ROW`).
+	// One frame's label is longer than the others, so an incomplete clear leaves
+	// its tail behind (`#450 topSTALE-ROW`) instead of being overwritten.
 	labelForFrame: frameCount =>
 		frameCount === 7 ? 'frame 7 STALE-ROW' : `frame ${frameCount}`,
 });
