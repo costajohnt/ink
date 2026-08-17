@@ -123,6 +123,12 @@ const stripKittyQueryResponsesAndTrailingPartial = (
 // pre-7.0 behavior of fully clearing between fullscreen frames there.
 const isWindowsConsole = process.platform === 'win32';
 
+// Full-clear fallback for frames taller than the viewport. `clearTerminal`
+// also emits CSI 3J, which erases the terminal's scrollback, and CSI 2J, which
+// VS Code and Windows Terminal handle by pushing the viewport into scrollback
+// first (#935). Home + erase-down clears only what is visible.
+const clearViewport = ansiEscapes.cursorTo(0, 0) + ansiEscapes.eraseDown;
+
 const shouldClearTerminalForFrame = ({
 	isTty,
 	viewportRows,
@@ -1125,7 +1131,7 @@ export default class Ink {
 			}
 
 			this.options.stdout.write(
-				ansiEscapes.clearTerminal + this.fullStaticOutput + outputToRender,
+				clearViewport + this.fullStaticOutput + outputToRender,
 			);
 			this.lastOutput = output;
 			this.lastOutputToRender = outputToRender;
