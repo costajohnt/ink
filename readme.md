@@ -1048,6 +1048,8 @@ Vertical offset applied to the element's children, in rows. Children are shifted
 
 Offsets are terminal cell coordinates, so fractional values are truncated toward zero and non-finite values are treated as `0`.
 
+When an offset splits a wide character, such as CJK, the hidden half still owns a terminal cell and is rendered as a blank so the columns after it stay aligned. Styling of that blank is best-effort: the split character's inline background or color is not carried over to it.
+
 ```jsx
 import {useState, useRef} from 'react';
 import {Box, useInput, useBoxMetrics} from 'ink';
@@ -2231,13 +2233,13 @@ Element height.
 
 Type: `number`
 
-Distance from the left edge of the parent.
+Distance from the left edge of the parent. These are layout coordinates and do not include any `contentOffsetX`/`contentOffsetY` applied by an ancestor, so hit-testing inside a scrolled container has to subtract those offsets too.
 
 #### top
 
 Type: `number`
 
-Distance from the top edge of the parent.
+Distance from the top edge of the parent. These are layout coordinates and do not include any `contentOffsetX`/`contentOffsetY` applied by an ancestor, so hit-testing inside a scrolled container has to subtract those offsets too.
 
 #### clientWidth
 
@@ -3002,7 +3004,7 @@ clear();
 Measure the layout metrics of a particular `<Box>` element.
 Returns an object with `x`, `y`, `width`, `height`, `clientWidth` and `clientHeight` properties.
 
-`x` and `y` are the element's position within the live layout region, computed by walking up the layout tree. These are layout-tree coordinates, not terminal viewport coordinates. To compare them with mouse events, convert the event coordinates using the live region's viewport position. This is necessary even in alternate-screen mode when output, such as `<Static>` content, appears above the live region.
+`x` and `y` are the element's position within the live layout region, computed by walking up the layout tree. These are layout-tree coordinates, not terminal viewport coordinates. To compare them with mouse events, convert the event coordinates using the live region's viewport position. This is necessary even in alternate-screen mode when output, such as `<Static>` content, appears above the live region. These are layout coordinates and do not include any `contentOffsetX`/`contentOffsetY` applied by an ancestor, so hit-testing inside a scrolled container has to subtract those offsets too.
 
 `clientWidth` and `clientHeight` are the element's dimensions excluding borders, which is the amount of space its content can occupy. To build a scrollable view, measure the content wrapper separately and clamp the offset with `content.height - viewport.clientHeight`, together with the `contentOffsetX`/`contentOffsetY` props. That bound assumes an unpadded viewport, since `clientWidth`/`clientHeight` exclude borders but not padding; put padding on the content wrapper instead.
 

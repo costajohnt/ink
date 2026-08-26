@@ -226,6 +226,31 @@ test('disjoint nested clips render nothing', t => {
 	t.is(output, 'HEADER\n');
 });
 
+test('disjoint nested clips do not overwrite content when a wide character straddles the edge', t => {
+	const output = renderToString(
+		<Box flexDirection="column">
+			<Text>XXXXXXXXXX</Text>
+			<Box marginTop={-1} width={5} overflowX="hidden" flexShrink={0}>
+				<Box
+					marginLeft={6}
+					width={5}
+					overflowX="hidden"
+					contentOffsetX={1}
+					flexShrink={0}
+				>
+					<Box flexShrink={0}>
+						<Text>你AAAA</Text>
+					</Box>
+				</Box>
+			</Box>
+		</Box>,
+		{columns: 20},
+	);
+
+	// The clips cover columns 0-5 and 6-11, so the intersection is empty. The offset puts the write one column left of the inner clip, splitting the wide character, and the padding that repairs a split cell used to be emitted even though no column was visible, landing a space on column 6 and blanking a cell outside both clips.
+	t.is(output, 'XXXXXXXXXX\n');
+});
+
 test('contentOffsetY - nested clipped content does not escape the outer viewport', t => {
 	const output = renderToString(
 		<Box flexDirection="column">

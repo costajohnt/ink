@@ -20,12 +20,12 @@ export type BoxMetrics = {
 	readonly height: number;
 
 	/**
-	Distance from the left edge of the parent.
+	Distance from the left edge of the parent. These are layout coordinates and do not include any `contentOffsetX`/`contentOffsetY` applied by an ancestor, so hit-testing inside a scrolled container has to subtract those offsets too.
 	*/
 	readonly left: number;
 
 	/**
-	Distance from the top edge of the parent.
+	Distance from the top edge of the parent. These are layout coordinates and do not include any `contentOffsetX`/`contentOffsetY` applied by an ancestor, so hit-testing inside a scrolled container has to subtract those offsets too.
 	*/
 	readonly top: number;
 

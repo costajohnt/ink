@@ -64,6 +64,11 @@ const intersectBound = (
 	return tighter(a, b);
 };
 
+// Bounds are half-open: `x2`/`y2` are exclusive, so an axis is empty as soon as its lower bound reaches its upper one.
+const isClipEmpty = (clip: Clip): boolean =>
+	(clip.x1 !== undefined && clip.x2 !== undefined && clip.x1 >= clip.x2) ||
+	(clip.y1 !== undefined && clip.y2 !== undefined && clip.y1 >= clip.y2);
+
 const intersectClips = (outer: Clip | undefined, inner: Clip): Clip => {
 	if (!outer) {
 		return inner;
@@ -222,6 +227,11 @@ export default class Output {
 				const clip = clips.at(-1);
 
 				if (clip) {
+					// Two nested clips can intersect to nothing. Nothing is visible, so bail out before slicing: a `from` past `to` reaches the wide-character padding below, which would manufacture a space and write it at the clip edge, outside both clips.
+					if (isClipEmpty(clip)) {
+						continue;
+					}
+
 					const clipHorizontally =
 						typeof clip?.x1 === 'number' && typeof clip?.x2 === 'number';
 
