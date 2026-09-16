@@ -802,3 +802,63 @@ for (const {name, incremental} of inkRenderingModes) {
 		},
 	);
 }
+
+// When output is taller than the terminal, Ink full-clears and then only
+// positions the cursor. That move must stop at the top of the viewport instead
+// of reaching into scrollback.
+const maxCursorUp = (writes: string[]): number => {
+	let max = 0;
+	for (const write of writes) {
+		for (const match of write.matchAll(/\[(\d*)A/g)) {
+			max = Math.max(max, match[1] === '' ? 1 : Number(match[1]));
+		}
+	}
+
+	return max;
+};
+
+function TallCursorApp({y}: {readonly y: number}) {
+	const {setCursorPosition} = useCursor();
+	setCursorPosition({x: 0, y});
+
+	return (
+		<Box flexDirection="column">
+			{Array.from({length: 20}, (_, i) => (
+				<Text key={i}>Line {i}</Text>
+			))}
+		</Box>
+	);
+}
+
+for (const incrementalRendering of [false, true]) {
+	test.serial(
+		`cursor move never exceeds viewport when output overflows (incrementalRendering: ${incrementalRendering})`,
+		async t => {
+			const rows = 5;
+			const stdout = createStdout(100, true, rows);
+
+			const {rerender, unmount} = render(<TallCursorApp y={0} />, {
+				stdout,
+				incrementalRendering,
+			});
+			await delay(50);
+			rerender(<TallCursorApp y={1} />);
+			await delay(50);
+			rerender(<TallCursorApp y={0} />);
+			await delay(50);
+
+			const writes = getWriteCalls(stdout);
+			t.true(
+				writes.some(write => write.includes(ansiEscapes.cursorUp(rows - 1))),
+				'cursor should move to the top of the viewport',
+			);
+			t.is(
+				maxCursorUp(writes),
+				rows - 1,
+				'cursor-up must not reach above the viewport',
+			);
+
+			unmount();
+		},
+	);
+}
