@@ -809,8 +809,12 @@ for (const {name, incremental} of inkRenderingModes) {
 const maxCursorUp = (writes: string[]): number => {
 	let max = 0;
 	for (const write of writes) {
-		for (const match of write.matchAll(/\[(\d*)A/g)) {
-			max = Math.max(max, match[1] === '' ? 1 : Number(match[1]));
+		// Every chunk after the first starts right after a CSI (`ESC [`).
+		for (const chunk of write.split('\u001B[').slice(1)) {
+			const match = /^(\d*)A/.exec(chunk);
+			if (match) {
+				max = Math.max(max, match[1] === '' ? 1 : Number(match[1]));
+			}
 		}
 	}
 
