@@ -904,7 +904,7 @@ export default class Ink {
 		this.finishKittyDetection?.(false);
 		this.isSuspended = true;
 
-		if (!this.interactive || this.isUnmounted || this.isUnmounting) {
+		if (this.isUnmounted || this.isUnmounting) {
 			return;
 		}
 
@@ -1239,21 +1239,14 @@ export default class Ink {
 			}
 		};
 
-		const concurrentReconciler = reconciler as {
-			flushPassiveEffects?: () => boolean;
-		};
+		reconciler.updateContainerSync(null, this.container, null, noop);
+		reconciler.flushSyncWork();
 
 		if (this.options.concurrent) {
-			reconciler.updateContainerSync(null, this.container, null, noop);
-			reconciler.flushSyncWork();
-			concurrentReconciler.flushPassiveEffects?.();
-			finishUnmount();
-		} else {
-			// Legacy mode: use updateContainerSync + flushSyncWork (sync)
-			reconciler.updateContainerSync(null, this.container, null, noop);
-			reconciler.flushSyncWork();
-			finishUnmount();
+			reconciler.flushPassiveEffects();
 		}
+
+		finishUnmount();
 	}
 
 	async waitUntilExit(): Promise<unknown> {
