@@ -567,20 +567,10 @@ test('out of bounds writes do not crash', (t: TestContext) => {
 		{columns: 10},
 	);
 
-	const expected = boxen('', {
-		width: 12,
-		height: 10,
-		borderStyle: 'round',
-	})
-		.split('\n')
-		.map((line, index) =>
-			index === 0 || index === 9
-				? line
-				: `${line.slice(0, 10)}${line[11] ?? ''}`,
-		)
-		.join('\n');
-
-	t.assert.strictEqual(output, expected);
+	t.assert.strictEqual(
+		output,
+		clipX(boxen('', {width: 12, height: 10, borderStyle: 'round'}), 10),
+	);
 });
 
 // Concurrent mode tests
@@ -638,4 +628,26 @@ test('nested overflow - concurrent', async (t: TestContext) => {
 		</Box>,
 	);
 	t.assert.strictEqual(output, 'AA\nBB\nXXXX\nYYYY\n');
+});
+
+test('content wider than the root is clipped at the terminal width', (t: TestContext) => {
+	const output = renderToString(
+		<Box width={30} flexShrink={0}>
+			<Text>{'A'.repeat(30)}</Text>
+		</Box>,
+		{columns: 20},
+	);
+
+	t.assert.strictEqual(output, 'A'.repeat(20));
+});
+
+test('wide character straddling the root edge is clipped', (t: TestContext) => {
+	const output = renderToString(
+		<Box width={22} flexShrink={0}>
+			<Text>{'あ'.repeat(11)}</Text>
+		</Box>,
+		{columns: 21},
+	);
+
+	t.assert.strictEqual(output, 'あ'.repeat(10));
 });

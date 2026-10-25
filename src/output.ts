@@ -282,6 +282,17 @@ export default class Output {
 			if (currentLine[offsetX]?.value === '') {
 				currentLine[offsetX] = blankCell(currentLine[offsetX]!);
 			}
+
+			// The output is the terminal itself, so cells past its right edge would wrap onto an extra row that log-update does not count. A wide character cut in half would still be pushed to the next row, so blank it.
+			if (currentLine.length <= this.width) {
+				continue;
+			}
+
+			currentLine.length = this.width;
+			const lastCell = currentLine[this.width - 1];
+			if (lastCell && this.caches.getStringWidth(lastCell.value) > 1) {
+				currentLine[this.width - 1] = blankCell(lastCell);
+			}
 		}
 	}
 
