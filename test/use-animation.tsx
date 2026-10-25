@@ -108,10 +108,14 @@ test('multiple animations with the same interval share one timer', async (t: Tes
 			debug: true,
 		});
 
-		t.assert.ok(mocks.setTimeoutCallCount >= 1);
+		// Each subscriber schedules the shared timer; the second one replaces the first instead of adding a timer.
+		t.assert.strictEqual(mocks.setTimeoutCallCount, 2);
+		t.assert.strictEqual(mocks.clearTimeoutCallCount, 1);
 		t.assert.ok(mocks.timeoutDelays.every(timeoutDelay => timeoutDelay === 50));
 
 		await clock.tickAsync(100);
+		// Two ticks fired, each rescheduling once for both subscribers.
+		t.assert.strictEqual(mocks.setTimeoutCallCount, 4);
 		const output = (stdout.write as any).lastCall.args[0] as string;
 		const [frame1, frame2] = output.split(',').map(Number);
 		t.assert.strictEqual(frame1, frame2);
@@ -170,10 +174,10 @@ test('shared timer is cleaned up and recreated after the last animation unmounts
 			debug: true,
 		});
 
-		t.assert.ok(mocks.setTimeoutCallCount >= 1);
+		t.assert.strictEqual(mocks.setTimeoutCallCount, 1);
 
 		firstRender.unmount();
-		t.assert.ok(mocks.clearTimeoutCallCount >= 1);
+		t.assert.strictEqual(mocks.clearTimeoutCallCount, 1);
 
 		const secondRender = render(<AnimatedCounter interval={50} />, {
 			stdout,
