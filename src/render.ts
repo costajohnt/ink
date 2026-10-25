@@ -183,9 +183,7 @@ export type Instance = {
 	waitUntilRenderFlush: Ink['waitUntilRenderFlush'];
 
 	/**
-	Unmount the current app and remove the internal Ink instance for this stdout.
-
-	This is mostly useful for advanced cases where you need `render()` to create a fresh instance for the same stream without leaving terminal state such as the alternate screen behind.
+	Alias for `unmount()`. Both unmount the app and remove the internal Ink instance for the current `stdout`, so a later `render()` on the same stream creates a fresh instance.
 	*/
 	cleanup: () => void;
 

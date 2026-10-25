@@ -1725,6 +1725,12 @@ Type: `number`
 
 The zero-indexed line number of the line that's currently being transformed.
 
+#### accessibilityLabel
+
+Type: `string`
+
+Text to output for screen readers instead of the transformed children. Only used when screen reader support is enabled.
+
 ## Hooks
 
 ### useInput(inputHandler, options?)
@@ -2863,6 +2869,27 @@ Available flags:
 - `'reportAllKeysAsEscapeCodes'` - Report all keys as escape codes
 - `'reportAssociatedText'` - Report associated text with key events. Automatically enables `reportAllKeysAsEscapeCodes`.
 
+Ink also exports the protocol's raw values for code that works with `CSI u` sequences directly:
+
+**kittyFlags**
+
+Type: `object`
+
+Kitty keyboard protocol flags. Maps each flag name to its bit value.
+
+**kittyModifiers**
+
+Type: `object`
+
+Kitty keyboard modifier bits. These are used in the modifier parameter of CSI u sequences. Note: The actual modifier value is (modifiers - 1) as per the protocol.
+
+```js
+import {kittyFlags, kittyModifiers} from 'ink';
+
+kittyFlags.reportEventTypes; // 2
+kittyModifiers.ctrl; // 4
+```
+
 **Behavior notes**
 
 When the kitty keyboard protocol is enabled, input handling changes in several ways:
@@ -2989,9 +3016,7 @@ runNextCommand();
 
 ##### cleanup()
 
-Unmount the current app and delete the internal Ink instance associated with the current `stdout`.
-This is mostly useful for advanced cases (for example, tests) where you need `render()` to create a fresh instance for the same stream.
-Unlike deleting the internal instance directly, this also tears down terminal state such as the alternate screen.
+Alias for `unmount()`. Both unmount the app and remove the internal Ink instance for the current `stdout`, so a later `render()` on the same stream creates a fresh instance.
 
 ##### clear()
 

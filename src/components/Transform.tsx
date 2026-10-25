@@ -3,7 +3,7 @@ import {AccessibilityContext} from './AccessibilityContext.js';
 
 export type Props = {
 	/**
-	Screen-reader-specific text to output. If this is set, all children will be ignored.
+	Text to output for screen readers instead of the transformed children. Only used when screen reader support is enabled.
 	*/
 	readonly accessibilityLabel?: string;
 

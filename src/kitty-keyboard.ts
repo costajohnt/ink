@@ -1,4 +1,4 @@
-// Kitty keyboard protocol flags.
+// Kitty keyboard protocol flags. Maps each flag name to its bit value.
 // @see https://sw.kovidgoyal.net/kitty/keyboard-protocol/
 export const kittyFlags = {
 	disambiguateEscapeCodes: 1,
@@ -28,9 +28,7 @@ export function resolveFlags(flags: KittyFlagName[]): number {
 	return result;
 }
 
-// Kitty keyboard modifier bits.
-// These are used in the modifier parameter of CSI u sequences.
-// Note: The actual modifier value is (modifiers - 1) as per the protocol.
+// Kitty keyboard modifier bits. These are used in the modifier parameter of CSI u sequences. Note: The actual modifier value is (modifiers - 1) as per the protocol.
 export const kittyModifiers = {
 	shift: 1,
 	alt: 2,
