@@ -36,6 +36,7 @@ const renderWithSuspend = async (
 	run: (
 		suspendTerminal: SuspendTerminal,
 		stdin: NodeJS.WriteStream,
+		stdout: FakeStdout,
 	) => Promise<void>,
 ): Promise<{stdout: FakeStdout; stdin: NodeJS.WriteStream}> => {
 	const stdout = createStdout();
@@ -50,7 +51,7 @@ const renderWithSuspend = async (
 		useEffect(() => {
 			void (async () => {
 				try {
-					await run(suspendTerminal, stdin);
+					await run(suspendTerminal, stdin, stdout);
 				} finally {
 					finished();
 				}
@@ -75,22 +76,39 @@ test('suspendTerminal hands the terminal to the callback, then restores Ink', as
 	let didRunInsideCallback = false;
 	let rawModeDuringCallback: boolean | undefined;
 	let rawModeAfterCallback: boolean | undefined;
+	let writesBeforeSuspend = 0;
+	let writesAtCallbackEnd = 0;
+	let writesAfterResume = 0;
 
-	const {stdout} = await renderWithSuspend(async (suspendTerminal, stdin) => {
-		await suspendTerminal(async () => {
-			didRunInsideCallback = true;
-			rawModeDuringCallback = lastSetRawModeArg(stdin);
-		});
-		rawModeAfterCallback = lastSetRawModeArg(stdin);
-	});
+	const {stdout} = await renderWithSuspend(
+		async (suspendTerminal, stdin, stdout) => {
+			writesBeforeSuspend = stdout.getWrites().length;
+			await suspendTerminal(async () => {
+				didRunInsideCallback = true;
+				rawModeDuringCallback = lastSetRawModeArg(stdin);
+				writesAtCallbackEnd = stdout.getWrites().length;
+			});
+			rawModeAfterCallback = lastSetRawModeArg(stdin);
+			writesAfterResume = stdout.getWrites().length;
+		},
+	);
 
 	t.assert.ok(didRunInsideCallback);
 	// Raw mode disabled for the child, re-enabled once Ink reclaimed the terminal.
 	t.assert.strictEqual(rawModeDuringCallback, false);
 	t.assert.ok(rawModeAfterCallback);
-	// Cursor shown for the child, then hidden again by the forced redraw.
-	t.assert.ok(stdout.getWrites().some(write => write.includes(showCursor)));
-	t.assert.ok(stdout.getWrites().some(write => write.includes(hideCursor)));
+	// Cursor shown while handing over, then hidden again by the forced redraw.
+	const writes = stdout.getWrites();
+	t.assert.ok(
+		writes
+			.slice(writesBeforeSuspend, writesAtCallbackEnd)
+			.some(write => write.includes(showCursor)),
+	);
+	t.assert.ok(
+		writes
+			.slice(writesAtCallbackEnd, writesAfterResume)
+			.some(write => write.includes(hideCursor)),
+	);
 });
 
 test('suspendTerminal restores the terminal even if the callback throws', async (t: TestContext) => {
@@ -250,8 +268,9 @@ test('suspendTerminal hands the terminal to a child process, then redraws (PTY)'
 
 	// The child process wrote directly to the terminal during suspension.
 	t.assert.ok(output.includes('CHILD_OUTPUT'));
-	// Ink showed the cursor when handing the terminal over.
-	t.assert.ok(output.includes(showCursor));
+	// Ink showed the cursor when handing the terminal over, before the child wrote.
+	const beforeChild = output.slice(0, output.indexOf('CHILD_OUTPUT'));
+	t.assert.ok(beforeChild.includes(showCursor));
 	// Ink reclaimed the terminal and repainted its frame after the child output,
 	// re-hiding the cursor as part of the redraw.
 	const afterChild = output.slice(
