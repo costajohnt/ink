@@ -16,14 +16,24 @@ after(() => {
 	restore();
 });
 
-test('catch and display error', (t: TestContext) => {
+test('catch and display error', async (t: TestContext) => {
 	const stdout = createStdout();
 
 	const Test = () => {
 		throw new Error('Oh no');
 	};
 
-	render(<Test />, {stdout});
+	const app = render(<Test />, {stdout});
+	let stack = '';
+	await t.assert.rejects(app.waitUntilExit(), (error: unknown) => {
+		stack = error instanceof Error ? (error.stack ?? '') : '';
+		return true;
+	});
+	// The overview points at where the error was created; read that position from the error itself so edits above this test do not shift the expectation.
+	const {line, column} = /errors\.tsx:(?<line>\d+):(?<column>\d+)/.exec(
+		stack,
+	)!.groups!;
+	const throwLine = Number(line);
 
 	// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
 	const writes: string[] = (stdout.write as any)
@@ -43,17 +53,18 @@ test('catch and display error', (t: TestContext) => {
 			'',
 			'  ERROR  Oh no',
 			'',
-			' test/errors.tsx:23:9',
+			` test/errors.tsx:${line}:${column}`,
 			'',
-			' 20:   const stdout = createStdout();',
-			' 21:',
-			' 22:   const Test = () => {',
-			" 23:     throw new Error('Oh no');",
-			' 24:   };',
-			' 25:',
-			' 26:   render(<Test />, {stdout});',
+			` ${throwLine - 3}:   const stdout = createStdout();`,
+			` ${throwLine - 2}:`,
+			` ${throwLine - 1}:   const Test = () => {`,
+			` ${throwLine}:     throw new Error('Oh no');`,
+			` ${throwLine + 1}:   };`,
+			` ${throwLine + 2}:`,
+			// eslint-disable-next-line unicorn/no-incorrect-template-string-interpolation -- Source excerpt, not an interpolation.
+			` ${throwLine + 3}:   const app = render(<Test />, {stdout});`,
 			'',
-			' - Test (test/errors.tsx:23:9)',
+			` - Test (test/errors.tsx:${line}:${column})`,
 		],
 	);
 });
