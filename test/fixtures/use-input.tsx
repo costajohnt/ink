@@ -254,7 +254,9 @@ function UserInput({test}: {readonly test: string | undefined}) {
 			return;
 		}
 
-		throw new Error('Crash');
+		throw new Error(
+			`Unexpected input ${JSON.stringify(input)} with key ${JSON.stringify(key)}`,
+		);
 	});
 
 	React.useEffect(() => {

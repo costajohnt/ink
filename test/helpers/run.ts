@@ -49,7 +49,11 @@ export const run: Run = async (fixture, props) => {
 				return;
 			}
 
-			reject(new Error(`Process exited with a non-zero code: ${exitCode}`));
+			reject(
+				new Error(
+					`Process exited with a non-zero code: ${exitCode}\n${output}`,
+				),
+			);
 		});
 	});
 };

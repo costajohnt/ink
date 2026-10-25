@@ -60,7 +60,11 @@ const term = (fixture: string, args: string[] = []) => {
 			return;
 		}
 
-		reject(new Error(`Process exited with non-zero exit code: ${exitCode}`));
+		reject(
+			new Error(
+				`Process exited with non-zero exit code: ${exitCode}\n${result.output}`,
+			),
+		);
 	});
 
 	return result;
