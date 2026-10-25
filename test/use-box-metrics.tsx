@@ -1,5 +1,5 @@
 import test, {type TestContext} from 'node:test';
-import React, {useRef, useState} from 'react';
+import React, {use, useRef, useState} from 'react';
 import delay from 'delay';
 import stripAnsi from 'strip-ansi';
 import {
@@ -9,6 +9,7 @@ import {
 	useBoxMetrics,
 	type DOMElement,
 } from '../src/index.js';
+import RootNodeContext from '../src/components/RootNodeContext.js';
 import createStdout from './helpers/create-stdout.js';
 import {act} from './helpers/act.js';
 
@@ -286,8 +287,9 @@ test('does not trigger extra re-renders when layout is unchanged', async (t: Tes
 	await waitUntilRenderFlush();
 	await delay(100);
 
-	// Renders settle at 2: initial render (layout all zeros) → setLayout triggers
-	// re-render (layout measured) → bail-out prevents any further renders.
+	// Renders settle at 2 or 3: initial render (layout all zeros) → the measured
+	// layout triggers one re-render → React may render once more before bailing
+	// out of the unchanged state update, then stops.
 	t.assert.ok(renderCount >= 2);
 	t.assert.ok(renderCount <= 3);
 });
@@ -302,17 +304,22 @@ function SimpleBox() {
 	);
 }
 
-test('removes resize listener on unmount', async (t: TestContext) => {
+test('removes layout listener on unmount', async (t: TestContext) => {
 	const stdout = createStdout(100);
+	let rootNode: DOMElement | undefined;
 
-	const initialListenerCount = stdout.listenerCount('resize');
-	const {unmount, waitUntilRenderFlush} = render(<SimpleBox />, {stdout});
+	function Test() {
+		rootNode = use(RootNodeContext);
+		return <SimpleBox />;
+	}
+
+	const {unmount, waitUntilRenderFlush} = render(<Test />, {stdout});
 	await waitUntilRenderFlush();
 
-	t.assert.ok(stdout.listenerCount('resize') > initialListenerCount);
+	t.assert.strictEqual(rootNode?.internal_layoutListeners?.size, 1);
 	unmount();
 
-	t.assert.strictEqual(stdout.listenerCount('resize'), initialListenerCount);
+	t.assert.strictEqual(rootNode?.internal_layoutListeners?.size, 0);
 });
 
 // eslint-disable-next-line node-test/require-assertion -- Passes when the resize does not throw.
