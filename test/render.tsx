@@ -2008,6 +2008,25 @@ for (const patchConsoleOption of ['omitted', 'undefined']) {
 	});
 }
 
+test('patchConsole drops the React "The above error occurred" stderr message', (t: TestContext) => {
+	const stdout = createStdout();
+	const stderr = createStdout();
+	const instance = render(<Text>Hello</Text>, {
+		stdout,
+		stderr,
+		patchConsole: true,
+		interactive: false,
+	});
+	t.after(() => {
+		instance.unmount();
+	});
+
+	console.error('The above error occurred in the <Test> component');
+	console.error('Something else went wrong');
+
+	t.assert.deepStrictEqual(stderr.getWrites(), ['Something else went wrong\n']);
+});
+
 test('update trailing newline when unchanged output becomes fullscreen', async (t: TestContext) => {
 	const stdout = createStdout();
 	stdout.rows = 24;

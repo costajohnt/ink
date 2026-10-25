@@ -10,10 +10,26 @@ import {
 	render,
 	useStdout,
 	useStderr,
+	useIsScreenReaderEnabled,
 } from '../src/index.js';
 import {bsu, esu} from '../src/write-synchronized.js';
 import {renderToString} from './helpers/render-to-string.js';
 import createStdout from './helpers/create-stdout.js';
+
+test('useIsScreenReaderEnabled reflects the isScreenReaderEnabled option', (t: TestContext) => {
+	function Test() {
+		return <Text>{useIsScreenReaderEnabled() ? 'enabled' : 'disabled'}</Text>;
+	}
+
+	t.assert.strictEqual(
+		renderToString(<Test />, {isScreenReaderEnabled: true}),
+		'enabled',
+	);
+	t.assert.strictEqual(
+		renderToString(<Test />, {isScreenReaderEnabled: false}),
+		'disabled',
+	);
+});
 
 test('omit Static content inside a hidden ancestor from screen-reader output', (t: TestContext) => {
 	const output = renderToString(
