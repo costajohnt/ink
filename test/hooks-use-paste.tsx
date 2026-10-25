@@ -1,4 +1,5 @@
 import test, {type TestContext} from 'node:test';
+import FakeTimers from '@sinonjs/fake-timers';
 import React from 'react';
 import {render, useInput, usePaste} from '../src/index.js';
 import createStdout from './helpers/create-stdout.js';
@@ -43,6 +44,7 @@ test('usePaste - multiple simultaneous hooks both receive the same paste event',
 });
 
 test('usePaste - unterminated paste is flushed after a delay and input recovers', async (t: TestContext) => {
+	const clock = FakeTimers.install({toFake: ['setTimeout', 'clearTimeout']});
 	const stdin = createStdin();
 	const pastes: string[] = [];
 	const inputs: string[] = [];
@@ -66,6 +68,7 @@ test('usePaste - unterminated paste is flushed after a delay and input recovers'
 	});
 	t.after(() => {
 		instance.unmount();
+		clock.uninstall();
 	});
 	await act(async () => {
 		emitReadable(stdin, '\u{1B}[200~hello');
@@ -75,9 +78,8 @@ test('usePaste - unterminated paste is flushed after a delay and input recovers'
 	});
 	t.assert.deepStrictEqual(pastes, []);
 	await act(async () => {
-		await new Promise(resolve => {
-			setTimeout(resolve, 1200);
-		});
+		// Fire the pending paste flush timer.
+		await clock.tickAsync(1000);
 	});
 	await act(async () => {
 		emitReadable(stdin, 'q');
