@@ -416,6 +416,17 @@ test('holds incomplete bracketed paste as pending', (t: TestContext) => {
 	]);
 });
 
+test('flushes unterminated bracketed paste as a paste event', (t: TestContext) => {
+	const parser = createInputParser();
+
+	t.assert.deepStrictEqual(parser.push('\u{1B}[200~hello'), []);
+	t.assert.strictEqual(parser.hasPendingEscape(), false);
+	t.assert.ok(parser.hasPendingInput());
+	t.assert.deepStrictEqual(parser.flushPendingEscape(), {paste: 'hello'});
+	t.assert.strictEqual(parser.hasPendingInput(), false);
+	t.assert.deepStrictEqual(parser.push('\u{3}'), ['\u{3}']);
+});
+
 test('assembles bracketed paste from chunk-by-chunk delivery', (t: TestContext) => {
 	const parser = createInputParser();
 

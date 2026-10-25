@@ -123,6 +123,8 @@ function App({
 	const pendingInputFlushRef = useRef<NodeJS.Timeout | undefined>(undefined);
 	// Small delay to let chunked escape sequences complete before flushing as literal input.
 	const pendingInputFlushDelayMilliseconds = 20;
+	// Longer delay for a bracketed paste whose end marker never arrives, so a paste chunked over a slow link is not split while a dropped end marker still cannot swallow all later input.
+	const pendingPasteFlushDelayMilliseconds = 1000;
 
 	const clearPendingInputFlush = useCallback((): void => {
 		if (!pendingInputFlushRef.current) {
@@ -306,21 +308,8 @@ function App({
 		[handleInput],
 	);
 
-	const schedulePendingInputFlush = useCallback((): void => {
-		clearPendingInputFlush();
-		pendingInputFlushRef.current = setTimeout(() => {
-			pendingInputFlushRef.current = undefined;
-			const pendingEscape = inputParserRef.current.flushPendingEscape();
-			if (pendingEscape === undefined || pendingEscape === '') {
-				return;
-			}
-
-			emitInput(pendingEscape);
-		}, pendingInputFlushDelayMilliseconds);
-	}, [clearPendingInputFlush, emitInput]);
-
-	const handleReadable = useCallback((): void => {
-		const handleInputEvent = (event: InputEvent): void => {
+	const handleInputEvent = useCallback(
+		(event: InputEvent): void => {
 			if (typeof event === 'string') {
 				// Protocol replies are consumed here; bracketed paste stays literal.
 				// eslint-disable-next-line no-control-regex, regexp/no-control-character -- Kitty keyboard query replies start with ESC.
@@ -348,8 +337,27 @@ function App({
 
 				eventEmitterRef.current.emit('paste', event.paste);
 			}
-		};
+		},
+		[emitInput, onKittyQueryResponse],
+	);
 
+	const schedulePendingInputFlush = useCallback(
+		(delayMilliseconds: number): void => {
+			clearPendingInputFlush();
+			pendingInputFlushRef.current = setTimeout(() => {
+				pendingInputFlushRef.current = undefined;
+				const pendingInput = inputParserRef.current.flushPendingEscape();
+				if (pendingInput === undefined || pendingInput === '') {
+					return;
+				}
+
+				handleInputEvent(pendingInput);
+			}, delayMilliseconds);
+		},
+		[clearPendingInputFlush, handleInputEvent],
+	);
+
+	const handleReadable = useCallback((): void => {
 		clearPendingInputFlush();
 		let chunk;
 		// eslint-disable-next-line @typescript-eslint/no-restricted-types
@@ -360,14 +368,15 @@ function App({
 		}
 
 		if (inputParserRef.current.hasPendingEscape()) {
-			schedulePendingInputFlush();
+			schedulePendingInputFlush(pendingInputFlushDelayMilliseconds);
+		} else if (inputParserRef.current.hasPendingInput()) {
+			schedulePendingInputFlush(pendingPasteFlushDelayMilliseconds);
 		}
 	}, [
 		stdin,
-		emitInput,
+		handleInputEvent,
 		clearPendingInputFlush,
 		schedulePendingInputFlush,
-		onKittyQueryResponse,
 	]);
 
 	const attachReadableListener = useCallback((): void => {

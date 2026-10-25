@@ -261,7 +261,8 @@ const parseKeypresses = (input: string): ParsedInput => {
 export type InputParser = {
 	push: (chunk: string) => InputEvent[];
 	hasPendingEscape: () => boolean;
-	flushPendingEscape: () => string | undefined;
+	hasPendingInput: () => boolean;
+	flushPendingEscape: () => InputEvent | undefined;
 	reset: () => void;
 };
 
@@ -283,6 +284,9 @@ export const createInputParser = (): InputParser => {
 				pending !== '\u{1B}[200'
 			);
 		},
+		hasPendingInput() {
+			return pending !== '';
+		},
 		flushPendingEscape() {
 			if (!pending.startsWith(escape)) {
 				return undefined;
@@ -290,7 +294,10 @@ export const createInputParser = (): InputParser => {
 
 			const pendingEscape = pending;
 			pending = '';
-			return pendingEscape;
+			// An unterminated paste (the end marker never arrived) is still paste content, not keystrokes.
+			return pendingEscape.startsWith(pasteStart)
+				? {paste: pendingEscape.slice(pasteStart.length)}
+				: pendingEscape;
 		},
 		reset() {
 			pending = '';
