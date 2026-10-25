@@ -209,17 +209,17 @@ const term = (
 		},
 		output: '',
 		waitForExit: async () => exitPromise,
-		async waitForOutput(text: string) {
-			for (let attempt = 0; attempt < 100; attempt++) {
-				if (result.output.includes(text)) {
-					return;
+		async waitForOutput(text: string, timeout = 10_000) {
+			const deadline = Date.now() + timeout;
+
+			while (!result.output.includes(text)) {
+				if (Date.now() > deadline) {
+					throw new Error(`Timed out waiting for ${JSON.stringify(text)}`);
 				}
 
 				// eslint-disable-next-line no-await-in-loop -- Wait for the terminal to process input before checking again.
 				await delay(20);
 			}
-
-			throw new Error(`Timed out waiting for ${JSON.stringify(text)}`);
 		},
 	};
 
