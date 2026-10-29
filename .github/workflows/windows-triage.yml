@@ -1,0 +1,37 @@
+name: windows-triage
+on: push
+jobs:
+  triage:
+    name: conpty_dll=${{ matrix.conpty_dll }}
+    runs-on: windows-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        conpty_dll: [false, true]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - run: npm install
+      - if: matrix.conpty_dll
+        run: |
+          node -e '
+          const fs = require("fs");
+          const f = "node_modules/node-pty/lib/index.js";
+          const s = fs.readFileSync(f, "utf8");
+          const t = s.replace("function spawn(file, args, opt) {\n    return new terminalCtor(file, args, opt);", "function spawn(file, args, opt) {\n    return new terminalCtor(file, args, Object.assign({useConptyDll: true}, opt));");
+          if (s === t) throw new Error("patch failed");
+          fs.writeFileSync(f, t);
+          '
+      - run: >
+          node --env-file=test/test.env --import=tsx --test --test-concurrency=1
+          --test-timeout=60000 --test-force-exit
+          test/exit.tsx test/hooks.tsx test/hooks-use-input.tsx test/hooks-use-input-kitty.tsx
+          test/hooks-use-input-navigation.tsx test/hooks-use-paste.tsx test/components.tsx
+          test/render.tsx test/issue-973-static-commit.tsx test/suspend-terminal.tsx
+          test/devtools.tsx test/terminal-resize.tsx
